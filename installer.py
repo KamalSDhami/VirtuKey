@@ -14,6 +14,7 @@ import sys
 import winreg
 import subprocess
 import time
+import ctypes
 
 # Try to import psutil, fall back to subprocess if not available
 try:
@@ -24,8 +25,13 @@ except ImportError:
 
 class VirtuKeyInstaller:
     def __init__(self):
+        # Without this, Windows bitmap-stretches the window and text is blurry
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            pass
         self.root = tk.Tk()
-        self.root.geometry("650x560")  # Further reduced height for better fit
+        self.scale = max(1.0, self.root.winfo_fpixels('1i') / 96)
         self.root.resizable(False, False)
         self.root.configure(bg='#f8fafc')  # Light gray background
         
@@ -69,9 +75,13 @@ class VirtuKeyInstaller:
         self.create_ui()
         self.show_step(0)
         
+    def px(self, value):
+        """Scale a pixel size for the current display DPI"""
+        return int(value * self.scale)
+        
     def create_ui(self):
         # Modern header with gradient-like appearance - reduced height
-        header_frame = tk.Frame(self.root, bg=self.colors['primary'], height=80)
+        header_frame = tk.Frame(self.root, bg=self.colors['primary'], height=self.px(80))
         header_frame.pack(fill=tk.X)
         header_frame.pack_propagate(False)
         
@@ -101,7 +111,7 @@ class VirtuKeyInstaller:
             dot_frame.pack_propagate(False)
             
             dot = tk.Label(dot_frame, text="●", bg=self.colors['primary'], 
-                          fg='#94a3b8', font=('Arial', 8))
+                          fg='#94a3b8', font=('Segoe UI', 8))
             dot.pack(expand=True)
             self.progress_dots.append(dot)
         
@@ -125,7 +135,7 @@ class VirtuKeyInstaller:
         button_shadow = tk.Frame(button_container, bg='#d1d5db', height=2)
         button_shadow.pack(fill=tk.X, pady=(2, 0))
         
-        button_frame = tk.Frame(button_container, bg=self.colors['surface'], height=60)
+        button_frame = tk.Frame(button_container, bg=self.colors['surface'], height=self.px(64))
         button_frame.pack(fill=tk.X, pady=(0, 2))
         button_frame.pack_propagate(False)
         
@@ -301,7 +311,7 @@ class VirtuKeyInstaller:
             
             # Large icon
             icon_label = tk.Label(header_section, text="⚠️", 
-                                 bg=self.colors['surface'], font=('Arial', 30))
+                                 bg=self.colors['surface'], font=('Segoe UI', 30))
             icon_label.pack(pady=(0, 8))
             
             title = tk.Label(header_section, text="VirtuKey is already installed", 
@@ -375,7 +385,7 @@ class VirtuKeyInstaller:
             
             # Large welcome icon
             icon_label = tk.Label(hero_section, text="🚀", 
-                                 bg=self.colors['surface'], font=('Arial', 30))
+                                 bg=self.colors['surface'], font=('Segoe UI', 30))
             icon_label.pack(pady=(0, 10))
             
             title = tk.Label(hero_section, text="Welcome to VirtuKey", 
@@ -413,7 +423,7 @@ class VirtuKeyInstaller:
                 feature_content.pack()  # Center the content within the frame
                 
                 icon_label = tk.Label(feature_content, text=icon, 
-                                     bg=self.colors['surface'], font=('Arial', 11))
+                                     bg=self.colors['surface'], font=('Segoe UI', 11))
                 icon_label.pack(side=tk.LEFT, padx=(0, 6))
                 
                 text_label = tk.Label(feature_content, text=text, 
@@ -433,20 +443,20 @@ class VirtuKeyInstaller:
         
     def show_license(self):
         """License agreement page"""
-        license_frame = tk.Frame(self.content_frame, bg='white')
+        license_frame = tk.Frame(self.content_frame, bg=self.colors['surface'])
         license_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=10)
         
         title = tk.Label(license_frame, text="License Agreement", 
-                        bg='white', fg='#2c3e50', font=('Arial', 14, 'bold'))
+                        bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 14, 'bold'))
         title.pack(pady=(0, 10))
         
         # Create a frame for the text area with fixed height
-        text_container = tk.Frame(license_frame, bg='white')
+        text_container = tk.Frame(license_frame, bg=self.colors['surface'])
         text_container.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # License text with scrollbar - reduced height to fit page
         license_text = tk.Text(text_container, wrap=tk.WORD, height=12, 
-                              font=('Consolas', 9), bg='#f8f9fa', 
+                              font=('Consolas', 9), bg=self.colors['background'], 
                               yscrollcommand=lambda *args: scrollbar.set(*args))
         
         scrollbar = tk.Scrollbar(text_container, orient=tk.VERTICAL, 
@@ -489,14 +499,14 @@ to external servers."""
         license_text.config(state=tk.DISABLED, yscrollcommand=scrollbar.set)
         
         # Accept checkbox - fixed at bottom with padding
-        checkbox_frame = tk.Frame(license_frame, bg='white', height=40)
+        checkbox_frame = tk.Frame(license_frame, bg=self.colors['surface'], height=40)
         checkbox_frame.pack(fill=tk.X, side=tk.BOTTOM)
         checkbox_frame.pack_propagate(False)
         
         self.accept_license = tk.BooleanVar(value=False)
         accept_cb = tk.Checkbutton(checkbox_frame, text="I accept the license agreement",
                                   variable=self.accept_license,
-                                  bg='white', font=('Arial', 10, 'bold'),
+                                  bg=self.colors['surface'], font=('Segoe UI', 10, 'bold'),
                                   command=self.on_license_accept)
         accept_cb.pack(pady=8, anchor=tk.W)
         
@@ -512,100 +522,100 @@ to external servers."""
             
     def show_options(self):
         """Installation options page"""
-        options_frame = tk.Frame(self.content_frame, bg='white')
+        options_frame = tk.Frame(self.content_frame, bg=self.colors['surface'])
         options_frame.pack(expand=True, fill=tk.BOTH, padx=15, pady=8)
         
         title = tk.Label(options_frame, text="Installation Options", 
-                        bg='white', fg='#2c3e50', font=('Arial', 13, 'bold'))
+                        bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 13, 'bold'))
         title.pack(pady=(0, 8))
         
         # Installation path section
-        path_section = tk.Frame(options_frame, bg='white')
+        path_section = tk.Frame(options_frame, bg=self.colors['surface'])
         path_section.pack(fill=tk.X, pady=(0, 8))
         
         path_label = tk.Label(path_section, text="Installation Directory:", 
-                             bg='white', fg='#2c3e50', font=('Arial', 9, 'bold'))
+                             bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 9, 'bold'))
         path_label.pack(anchor=tk.W, pady=(0, 2))
         
-        path_frame = tk.Frame(path_section, bg='white')
+        path_frame = tk.Frame(path_section, bg=self.colors['surface'])
         path_frame.pack(fill=tk.X, pady=(0, 2))
         
         path_entry = tk.Entry(path_frame, textvariable=self.install_path, 
-                             font=('Arial', 9), width=40)
+                             font=('Segoe UI', 9), width=40)
         path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
         
         browse_btn = tk.Button(path_frame, text="Browse...", 
                               command=self.browse_folder,
-                              bg='#95a5a6', fg='white', font=('Arial', 8),
+                              bg='#95a5a6', fg='white', font=('Segoe UI', 8),
                               padx=10, pady=3)
         browse_btn.pack(side=tk.RIGHT)
         
         # Space info
         space_info = tk.Label(path_section, text="Space required: ~2.5 MB", 
-                             bg='white', fg='#7f8c8d', font=('Arial', 8))
+                             bg=self.colors['surface'], fg=self.colors['text_muted'], font=('Segoe UI', 8))
         space_info.pack(anchor=tk.W, pady=(2, 0))
         
         # Location info
         location_info = tk.Label(path_section, text="Default location is in user folder (no admin rights required)", 
-                                bg='white', fg='#27ae60', font=('Arial', 7))
+                                bg=self.colors['surface'], fg=self.colors['success'], font=('Segoe UI', 7))
         location_info.pack(anchor=tk.W, pady=(1, 0))
         
         # Separator
-        separator = tk.Frame(options_frame, bg='#bdc3c7', height=1)
+        separator = tk.Frame(options_frame, bg=self.colors['border'], height=1)
         separator.pack(fill=tk.X, pady=8)
         
         # Additional options
         options_label = tk.Label(options_frame, text="Additional Options:", 
-                                bg='white', fg='#2c3e50', font=('Arial', 9, 'bold'))
+                                bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 9, 'bold'))
         options_label.pack(anchor=tk.W, pady=(0, 6))
         
         # Options checkboxes - more compact spacing
-        options_container = tk.Frame(options_frame, bg='white')
+        options_container = tk.Frame(options_frame, bg=self.colors['surface'])
         options_container.pack(fill=tk.X)
         
         desktop_cb = tk.Checkbutton(options_container, text="Create desktop shortcut",
                                    variable=self.create_desktop_shortcut,
-                                   bg='white', font=('Arial', 9))
+                                   bg=self.colors['surface'], font=('Segoe UI', 9))
         desktop_cb.pack(anchor=tk.W, pady=1)
         
         startmenu_cb = tk.Checkbutton(options_container, text="Create Start Menu shortcuts",
                                      variable=self.create_startmenu_shortcut,
-                                     bg='white', font=('Arial', 9))
+                                     bg=self.colors['surface'], font=('Segoe UI', 9))
         startmenu_cb.pack(anchor=tk.W, pady=1)
         
         autostart_cb = tk.Checkbutton(options_container, text="Start VirtuKey automatically with Windows",
                                      variable=self.auto_start,
-                                     bg='white', font=('Arial', 9))
+                                     bg=self.colors['surface'], font=('Segoe UI', 9))
         autostart_cb.pack(anchor=tk.W, pady=1)
         
     def show_uninstall_options(self):
         """Uninstall options page"""
-        uninstall_frame = tk.Frame(self.content_frame, bg='white')
+        uninstall_frame = tk.Frame(self.content_frame, bg=self.colors['surface'])
         uninstall_frame.pack(expand=True, fill=tk.BOTH, padx=15, pady=8)
         
         title = tk.Label(uninstall_frame, text="Uninstall Options", 
-                        bg='white', fg='#e74c3c', font=('Arial', 13, 'bold'))
+                        bg=self.colors['surface'], fg=self.colors['danger'], font=('Segoe UI', 13, 'bold'))
         title.pack(pady=(0, 12))
         
         # Current installation info
-        info_section = tk.Frame(uninstall_frame, bg='white')
+        info_section = tk.Frame(uninstall_frame, bg=self.colors['surface'])
         info_section.pack(fill=tk.X, pady=(0, 12))
         
         info_label = tk.Label(info_section, text="Current Installation:", 
-                             bg='white', fg='#2c3e50', font=('Arial', 9, 'bold'))
+                             bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 9, 'bold'))
         info_label.pack(anchor=tk.W, pady=(0, 4))
         
         path_info = tk.Label(info_section, text=f"Location: {self.install_path.get()}", 
-                            bg='white', fg='#34495e', font=('Arial', 9))
+                            bg=self.colors['surface'], fg=self.colors['text_secondary'], font=('Segoe UI', 9))
         path_info.pack(anchor=tk.W, pady=1)
         
         # Separator
-        separator = tk.Frame(uninstall_frame, bg='#bdc3c7', height=1)
+        separator = tk.Frame(uninstall_frame, bg=self.colors['border'], height=1)
         separator.pack(fill=tk.X, pady=12)
         
         # Removal options
         options_label = tk.Label(uninstall_frame, text="What to Remove:", 
-                                bg='white', fg='#2c3e50', font=('Arial', 9, 'bold'))
+                                bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 9, 'bold'))
         options_label.pack(anchor=tk.W, pady=(0, 8))
         
         # Initialize uninstall options
@@ -613,32 +623,32 @@ to external servers."""
         self.remove_settings = tk.BooleanVar(value=False)
         
         # Options checkboxes
-        options_container = tk.Frame(uninstall_frame, bg='white')
+        options_container = tk.Frame(uninstall_frame, bg=self.colors['surface'])
         options_container.pack(fill=tk.X)
         
         shortcuts_cb = tk.Checkbutton(options_container, text="Remove desktop and Start Menu shortcuts",
                                      variable=self.remove_shortcuts,
-                                     bg='white', font=('Arial', 9))
+                                     bg=self.colors['surface'], font=('Segoe UI', 9))
         shortcuts_cb.pack(anchor=tk.W, pady=2)
         
         settings_cb = tk.Checkbutton(options_container, text="Remove user settings and configuration",
                                     variable=self.remove_settings,
-                                    bg='white', font=('Arial', 9))
+                                    bg=self.colors['surface'], font=('Segoe UI', 9))
         settings_cb.pack(anchor=tk.W, pady=2)
         
         # Warning
         warning = tk.Label(uninstall_frame, 
                           text="⚠️ This action cannot be undone. VirtuKey will be completely removed from your system.",
-                          bg='white', fg='#e74c3c', font=('Arial', 8, 'italic'))
+                          bg=self.colors['surface'], fg=self.colors['danger'], font=('Segoe UI', 8, 'italic'))
         warning.pack(pady=12)
         
     def show_uninstall_summary(self):
         """Uninstall summary page"""
-        summary_frame = tk.Frame(self.content_frame, bg='white')
+        summary_frame = tk.Frame(self.content_frame, bg=self.colors['surface'])
         summary_frame.pack(expand=True, fill=tk.BOTH, padx=15, pady=15)
         
         title = tk.Label(summary_frame, text="Ready to Uninstall", 
-                        bg='white', fg='#e74c3c', font=('Arial', 13, 'bold'))
+                        bg=self.colors['surface'], fg=self.colors['danger'], font=('Segoe UI', 13, 'bold'))
         title.pack(pady=(0, 15))
         
         # Summary text
@@ -653,17 +663,17 @@ Note: If VirtuKey is running, you will be asked to close it automatically.
 Click Uninstall to begin the removal process."""
         
         summary_label = tk.Label(summary_frame, text=summary_text, 
-                                bg='white', fg='#34495e', font=('Arial', 9),
+                                bg=self.colors['surface'], fg=self.colors['text_secondary'], font=('Segoe UI', 9),
                                 justify=tk.LEFT)
         summary_label.pack(pady=8, anchor=tk.W)
         
     def show_installation(self):
         """Installation progress page"""
-        install_frame = tk.Frame(self.content_frame, bg='white')
+        install_frame = tk.Frame(self.content_frame, bg=self.colors['surface'])
         install_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
         
         title = tk.Label(install_frame, text="Ready to Install", 
-                        bg='white', fg='#2c3e50', font=('Arial', 14, 'bold'))
+                        bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 14, 'bold'))
         title.pack(pady=(0, 20))
         
         # Installation summary
@@ -677,43 +687,43 @@ Auto-start with Windows: {'Yes' if self.auto_start.get() else 'No'}
 Click Install to begin the installation."""
         
         summary_label = tk.Label(install_frame, text=summary_text, 
-                                bg='white', fg='#34495e', font=('Arial', 10),
+                                bg=self.colors['surface'], fg=self.colors['text_secondary'], font=('Segoe UI', 10),
                                 justify=tk.LEFT)
         summary_label.pack(pady=10, anchor=tk.W)
         
     def show_complete(self):
         """Installation/Uninstallation complete page"""
-        complete_frame = tk.Frame(self.content_frame, bg='white')
+        complete_frame = tk.Frame(self.content_frame, bg=self.colors['surface'])
         complete_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=20)
         
         # Success icon (using text)
         success_icon = tk.Label(complete_frame, text="✓", 
-                               bg='white', fg='#27ae60', font=('Arial', 48, 'bold'))
+                               bg=self.colors['surface'], fg=self.colors['success'], font=('Segoe UI', 48, 'bold'))
         success_icon.pack(pady=(20, 10))
         
         if self.mode == "uninstall":
             title = tk.Label(complete_frame, text="Uninstallation Complete!", 
-                            bg='white', fg='#2c3e50', font=('Arial', 16, 'bold'))
+                            bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 16, 'bold'))
             title.pack(pady=(0, 20))
             
             desc = tk.Label(complete_frame, 
                            text="VirtuKey has been successfully removed from your computer.\n\n"
                                 "All selected components have been uninstalled.\n\n"
                                 "Thank you for using VirtuKey!",
-                           bg='white', fg='#34495e', font=('Arial', 11),
+                           bg=self.colors['surface'], fg=self.colors['text_secondary'], font=('Segoe UI', 11),
                            justify=tk.CENTER)
             desc.pack(pady=10)
             
         else:
             title = tk.Label(complete_frame, text="Installation Complete!", 
-                            bg='white', fg='#2c3e50', font=('Arial', 16, 'bold'))
+                            bg=self.colors['surface'], fg=self.colors['text_primary'], font=('Segoe UI', 16, 'bold'))
             title.pack(pady=(0, 20))
             
             desc = tk.Label(complete_frame, 
                            text="VirtuKey has been successfully installed on your computer.\n\n"
                                 "You can now start using VirtuKey to manage your virtual desktops.\n\n"
                                 "Thank you for choosing VirtuKey!",
-                           bg='white', fg='#34495e', font=('Arial', 11),
+                           bg=self.colors['surface'], fg=self.colors['text_secondary'], font=('Segoe UI', 11),
                            justify=tk.CENTER)
             desc.pack(pady=10)
             
@@ -721,7 +731,7 @@ Click Install to begin the installation."""
             self.launch_now = tk.BooleanVar(value=True)
             launch_cb = tk.Checkbutton(complete_frame, text="Launch VirtuKey now",
                                       variable=self.launch_now,
-                                      bg='white', font=('Arial', 10, 'bold'))
+                                      bg=self.colors['surface'], font=('Segoe UI', 10, 'bold'))
             launch_cb.pack(pady=20)
         
     def browse_folder(self):
@@ -785,17 +795,20 @@ Click Install to begin the installation."""
             install_dir = Path(self.install_path.get())
             install_dir.mkdir(parents=True, exist_ok=True)
             
-            # Copy files from resource directory
-            source_dir = Path(__file__).parent / "resource"
-            
-            # Copy main files
+            # A running copy locks VirtuKey.exe and the DLL
+            if not self.handle_running_virtukey():
+                raise Exception("VirtuKey is still running.")
+
+            # Copy main files (Icon.png is optional)
             files_to_copy = ["VirtuKey.exe", "VirtualDesktopAccessor.dll", "Icon.png"]
             files_copied = 0
-            
+
             for file_name in files_to_copy:
-                source_file = source_dir / file_name
+                source_file = Path(self.get_resource_path(file_name))
                 dest_file = install_dir / file_name
-                
+
+                if not source_file.exists() and file_name == "Icon.png":
+                    continue
                 if source_file.exists():
                     try:
                         shutil.copy2(source_file, dest_file)
@@ -824,65 +837,66 @@ Click Install to begin the installation."""
         except Exception as e:
             raise Exception(f"Installation failed: {str(e)}")
             
+    def get_desktop_dir(self):
+        """Real Desktop folder (Windows 11 often redirects it to OneDrive)"""
+        try:
+            buf = ctypes.create_unicode_buffer(260)
+            ctypes.windll.shell32.SHGetFolderPathW(None, 0x10, None, 0, buf)  # CSIDL_DESKTOPDIRECTORY
+            if buf.value:
+                return Path(buf.value)
+        except Exception:
+            pass
+        return Path.home() / "Desktop"
+    
+    def get_startmenu_dir(self):
+        return Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "VirtuKey"
+    
+    def create_shortcuts(self, shortcuts):
+        """Create several .lnk files with a single PowerShell call.
+        shortcuts: list of (lnk_path, target, arguments, description)"""
+        def ps_quote(value):
+            return "'" + str(value).replace("'", "''") + "'"
+        
+        lines = ["$s = New-Object -ComObject WScript.Shell"]
+        for lnk, target, args, desc in shortcuts:
+            lines += [
+                f"$l = $s.CreateShortcut({ps_quote(lnk)})",
+                f"$l.TargetPath = {ps_quote(target)}",
+                f"$l.Arguments = {ps_quote(args)}",
+                f"$l.WorkingDirectory = {ps_quote(Path(target).parent)}",
+                f"$l.Description = {ps_quote(desc)}",
+                "$l.Save()",
+            ]
+        subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", "; ".join(lines)],
+                       check=True, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+    
     def create_desktop_shortcut_file(self):
         """Create desktop shortcut"""
         try:
-            desktop_path = Path.home() / "Desktop"
-            shortcut_path = desktop_path / "VirtuKey.lnk"
             exe_path = Path(self.install_path.get()) / "VirtuKey.exe"
-            icon_path = Path(self.install_path.get()) / "Icon.png"
-            
-            # Create shortcut using PowerShell
-            ps_script = f'''
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("{shortcut_path}")
-$Shortcut.TargetPath = "{exe_path}"
-$Shortcut.WorkingDirectory = "{Path(self.install_path.get())}"
-$Shortcut.Description = "VirtuKey - Virtual Desktop Manager"
-$Shortcut.Save()
-'''
-            subprocess.run(["powershell", "-Command", ps_script], check=True, capture_output=True)
-            
+            self.create_shortcuts([(self.get_desktop_dir() / "VirtuKey.lnk", exe_path, "",
+                                    "VirtuKey - Virtual Desktop Manager")])
         except Exception as e:
             # Non-critical error - don't fail installation
             print(f"Warning: Could not create desktop shortcut: {e}")
         
     def create_startmenu_shortcut_file(self):
-        """Create start menu shortcut"""
+        """Create Start Menu shortcuts for the app and the uninstaller"""
         try:
-            # Create VirtuKey folder in Start Menu
-            startmenu_path = Path.home() / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "VirtuKey"
+            startmenu_path = self.get_startmenu_dir()
             startmenu_path.mkdir(parents=True, exist_ok=True)
-            
-            shortcut_path = startmenu_path / "VirtuKey.lnk"
             exe_path = Path(self.install_path.get()) / "VirtuKey.exe"
             
-            # Create shortcut using PowerShell
-            ps_script = f'''
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("{shortcut_path}")
-$Shortcut.TargetPath = "{exe_path}"
-$Shortcut.WorkingDirectory = "{Path(self.install_path.get())}"
-$Shortcut.Description = "VirtuKey - Virtual Desktop Manager"
-$Shortcut.Save()
-'''
-            subprocess.run(["powershell", "-Command", ps_script], check=True, capture_output=True)
+            # Frozen builds launch themselves; the script needs the interpreter
+            if getattr(sys, "frozen", False):
+                uninstall_target, uninstall_args = Path(sys.executable), ""
+            else:
+                uninstall_target, uninstall_args = Path(sys.executable), f'"{Path(__file__).resolve()}"'
             
-            # Also create an uninstall shortcut
-            uninstall_shortcut = startmenu_path / "Uninstall VirtuKey.lnk"
-            installer_path = Path(__file__).resolve()
-            
-            ps_script_uninstall = f'''
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("{uninstall_shortcut}")
-$Shortcut.TargetPath = "python.exe"
-$Shortcut.Arguments = '"{installer_path}"'
-$Shortcut.WorkingDirectory = "{installer_path.parent}"
-$Shortcut.Description = "Uninstall VirtuKey"
-$Shortcut.Save()
-'''
-            subprocess.run(["powershell", "-Command", ps_script_uninstall], check=True, capture_output=True)
-            
+            self.create_shortcuts([
+                (startmenu_path / "VirtuKey.lnk", exe_path, "", "VirtuKey - Virtual Desktop Manager"),
+                (startmenu_path / "Uninstall VirtuKey.lnk", uninstall_target, uninstall_args, "Uninstall VirtuKey"),
+            ])
         except Exception as e:
             # Non-critical error - don't fail installation
             print(f"Warning: Could not create start menu shortcut: {e}")
@@ -1067,6 +1081,9 @@ $Shortcut.Save()
                 self.remove_desktop_shortcut()
                 self.remove_startmenu_shortcut()
             
+            # The startup entry would point at a missing exe, so always drop it
+            self.remove_startup_entry()
+            
             # Remove settings if requested
             if hasattr(self, 'remove_settings') and self.remove_settings.get():
                 self.remove_user_settings()
@@ -1084,7 +1101,7 @@ $Shortcut.Save()
     def remove_desktop_shortcut(self):
         """Remove desktop shortcut"""
         try:
-            desktop_path = Path.home() / "Desktop" / "VirtuKey.lnk"
+            desktop_path = self.get_desktop_dir() / "VirtuKey.lnk"
             if desktop_path.exists():
                 desktop_path.unlink()
         except Exception as e:
@@ -1093,7 +1110,7 @@ $Shortcut.Save()
     def remove_startmenu_shortcut(self):
         """Remove start menu shortcut"""
         try:
-            startmenu_path = Path.home() / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "VirtuKey"
+            startmenu_path = self.get_startmenu_dir()
             if startmenu_path.exists():
                 shutil.rmtree(startmenu_path)
         except Exception as e:
@@ -1102,7 +1119,15 @@ $Shortcut.Save()
     def remove_user_settings(self):
         """Remove user settings and configuration"""
         try:
-            # Remove from startup registry
+            settings_dir = Path(os.environ.get("APPDATA", "")) / "VirtuKey"
+            if os.environ.get("APPDATA") and settings_dir.exists():
+                shutil.rmtree(settings_dir)
+        except Exception as e:
+            print(f"Warning: Could not remove settings: {e}")
+    
+    def remove_startup_entry(self):
+        """Remove VirtuKey from Windows startup"""
+        try:
             key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE) as key:
                 try:
@@ -1122,80 +1147,6 @@ $Shortcut.Save()
             # Running as script
             return os.path.join(os.path.dirname(__file__), 'resource', filename)
     
-    def start_installation(self):
-        """Start the installation process"""
-        try:
-            # Create installation directory
-            install_dir = Path(self.install_path.get())
-            install_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Copy VirtuKey files
-            source_files = ['VirtuKey.exe', 'VirtualDesktopAccessor.dll']
-            
-            for filename in source_files:
-                source_path = self.get_resource_path(filename)
-                dest_path = install_dir / filename
-                
-                if not os.path.exists(source_path):
-                    raise FileNotFoundError(f"Source file not found: {source_path}")
-                
-                shutil.copy2(source_path, dest_path)
-            
-            # Create shortcuts if requested
-            if self.create_desktop_shortcut.get():
-                self.create_desktop_shortcut_file()
-            
-            if self.create_startmenu_shortcut.get():
-                self.create_startmenu_shortcut_file()
-            
-            # Add to startup if requested
-            if self.auto_start.get():
-                self.add_to_startup()
-            
-            # Move to completion page
-            self.show_step(self.total_steps - 1)
-            
-        except Exception as e:
-            messagebox.showerror("Installation Error", f"Failed to install VirtuKey:\n{str(e)}")
-    
-    def start_uninstallation(self):
-        """Start the uninstallation process"""
-        try:
-            # Remove files
-            install_dir = Path(self.install_path.get())
-            if install_dir.exists():
-                shutil.rmtree(install_dir)
-            
-            # Remove shortcuts if requested
-            if hasattr(self, 'remove_shortcuts') and self.remove_shortcuts.get():
-                self.remove_desktop_shortcuts()
-                self.remove_startmenu_shortcuts()
-            
-            # Remove settings if requested
-            if hasattr(self, 'remove_settings') and self.remove_settings.get():
-                self.remove_user_settings()
-            
-            # Move to completion page
-            self.show_step(self.total_steps - 1)
-            
-        except Exception as e:
-            messagebox.showerror("Uninstallation Error", f"Failed to uninstall VirtuKey:\n{str(e)}")
-    
-    def start_reinstallation(self):
-        """Start the reinstallation process"""
-        # First uninstall, then install
-        try:
-            # Remove existing installation
-            install_dir = Path(self.install_path.get())
-            if install_dir.exists():
-                shutil.rmtree(install_dir)
-            
-            # Now proceed with installation
-            self.start_installation()
-            
-        except Exception as e:
-            messagebox.showerror("Reinstallation Error", f"Failed to reinstall VirtuKey:\n{str(e)}")
-        
     def finish_installation(self):
         """Finish the installation/uninstallation"""
         if self.mode != "uninstall" and hasattr(self, 'launch_now') and self.launch_now.get():
@@ -1218,9 +1169,11 @@ $Shortcut.Save()
         """Start the installer"""
         # Center the window
         self.root.update_idletasks()
-        x = (self.root.winfo_screenwidth() // 2) - (700 // 2)
-        y = (self.root.winfo_screenheight() // 2) - (600 // 2)
-        self.root.geometry(f"700x600+{x}+{y}")
+        w = min(self.px(700), self.root.winfo_screenwidth())
+        h = min(self.px(600), self.root.winfo_screenheight() - self.px(48))
+        x = (self.root.winfo_screenwidth() - w) // 2
+        y = (self.root.winfo_screenheight() - h) // 2
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
         
         self.root.mainloop()
 
